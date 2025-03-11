@@ -38,9 +38,14 @@ impl Actions {
         Self { values }
     }
 
-    pub fn random(&self) -> Action {
-        *self.values
-            .choose(&mut rand::rng())
-            .expect("slice should not be empty")
+    pub fn random(&self, possible_actions: Vec<Action>) -> Action {
+        loop {
+            let action: Action = *self.values
+                .choose(&mut rand::rng())
+                .expect("slice should not be empty");
+            if possible_actions.contains(&action) {
+                return action;
+            }
+        }
     }
 }

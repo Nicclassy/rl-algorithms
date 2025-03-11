@@ -1,4 +1,10 @@
+use std::collections::HashMap;
 use std::ops::{Add, Index, IndexMut};
+
+use strum::IntoEnumIterator;
+use strum_macros::EnumIter;
+
+use crate::env::Tile;
 
 #[derive(Debug, Default, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct Position {
@@ -6,11 +12,12 @@ pub struct Position {
     pub y: i32
 }
 
+#[derive(EnumIter, Clone, Copy)]
 pub enum Direction {
-    Left,
-    Right,
     Up,
-    Down
+    Down,
+    Left,
+    Right
 }
 
 impl Position {
@@ -25,10 +32,10 @@ impl Position {
 
     pub fn in_direction(self, direction: Direction) -> Self {
         match direction {
-            Direction::Up => self.add(Self::UP),
-            Direction::Down => self.add(Self::DOWN),
-            Direction::Left => self.add(Self::LEFT),
-            Direction::Right => self.add(Self::RIGHT)
+            Direction::Up => self + Self::UP,
+            Direction::Down => self + Self::DOWN,
+            Direction::Left => self + Self::LEFT,
+            Direction::Right => self + Self::RIGHT
         }
     }
 }
@@ -41,36 +48,38 @@ impl Add for Position {
     }
 }
 
-pub struct Board<const N: usize, T = i32> {
+pub struct Board<const N: usize, T = Tile> {
+    special_tiles: HashMap<Position, T>,
     array: [[T; N]; N]
 }
 
 impl<const N: usize, T: Default + Copy> Board<N, T> {
-    const NEIGHBOURS: [Position; 4] = [
-        Position::UP, Position::DOWN, 
-        Position::LEFT, Position::RIGHT 
-    ];
-
-    pub fn new() -> Self {
-        Self { array: [[Default::default(); N]; N] }
+    pub fn new(special_tiles: HashMap<Position, T>) -> Self {
+        let mut array = [[T::default(); N]; N];
+        for (position, tile) in &special_tiles {
+            array[position.y as usize][position.x as usize] = *tile;
+        }
+        Self { special_tiles, array }
     }
 
-    pub fn neighbours(&self, position: Position) -> Vec<Position> {
-        Self::NEIGHBOURS
-            .iter()
-            .map(|&p| { position.add(p) })
-            .filter(Self::in_bounds)
-            .collect()
+    pub fn reset(&mut self) {
+        self.array = [[T::default(); N]; N];
+        for (position, tile) in &self.special_tiles {
+            self.array[position.y as usize][position.x as usize] = *tile;
+        }
+    }
+
+    pub fn neighbours(&self, position: Position) -> (Vec<Direction>, Vec<Position>) {
+        Direction::iter()
+            .filter_map(|dir| {
+                let neighbour = position.in_direction(dir);
+                Self::in_bounds(&neighbour).then_some((dir, neighbour))
+            })
+            .unzip()
     }
 
     fn in_bounds(&Position {x, y}: &Position) -> bool {
         x >= 0 && x < N as i32 && y >= 0 && y < N as i32
-    }
-}
-
-impl<const N: usize> Default for Board<N> {
-    fn default() -> Self {
-        Self::new()
     }
 }
 

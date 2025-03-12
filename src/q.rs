@@ -2,7 +2,7 @@ use std::ops::{Index, IndexMut};
 
 use crate::states::{State, Action};
 
-pub struct Q<V> {
+pub struct Q<V = f32> {
     pub n_possible_states: usize,
     pub n_possible_actions: usize,
     mapping: Vec<V>
@@ -15,6 +15,18 @@ impl<V: Default + Clone> Q<V> {
             n_possible_actions, 
             mapping: vec![Default::default(); n_possible_states * n_possible_actions]
         }
+    }
+}
+
+impl Q {
+    pub fn argmax(&self, state: State, action_is_possible: impl Fn(Action) -> bool) -> Action {
+        self[state]
+            .iter()
+            .enumerate()
+            .filter(|&(a, _)| { action_is_possible(a) })
+            .max_by(|&(_, &x), &(_, y)| { x.total_cmp(y) })
+            .map(|(a, _)| a)
+            .unwrap()
     }
 }
 

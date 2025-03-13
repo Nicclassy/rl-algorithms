@@ -1,10 +1,11 @@
+use std::fmt::{self, Display};
 use std::collections::HashMap;
 use std::ops::{Add, Index, IndexMut};
 
-use strum::IntoEnumIterator;
 use strum_macros::EnumIter;
 
 use crate::env::Tile;
+use crate::states::Action;
 
 #[derive(Debug, Default, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct Position {
@@ -12,12 +13,23 @@ pub struct Position {
     pub y: i32
 }
 
-#[derive(EnumIter, Clone, Copy)]
+#[derive(EnumIter, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum Direction {
     Up,
     Down,
     Left,
     Right
+}
+
+impl Direction {
+    pub fn to_action(&self) -> Action {
+        match self {
+            Self::Up => 0,
+            Self::Down => 1,
+            Self::Left => 2,
+            Self::Right => 3
+        }
+    }
 }
 
 impl Position {
@@ -26,7 +38,7 @@ impl Position {
     const LEFT: Self = Self { x: 1, y: 0 };
     const RIGHT: Self = Self { x: -1, y: 0 };
 
-    pub const fn new(x: i32, y: i32) -> Self {
+    pub fn new(x: i32, y: i32) -> Self {
         Self { x, y }
     }
 
@@ -40,6 +52,12 @@ impl Position {
     }
 }
 
+impl Display for Position {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "(x={}, y={})", self.x, self.y)
+    } 
+} 
+
 impl Add for Position {
     type Output = Self;
 
@@ -48,50 +66,53 @@ impl Add for Position {
     }
 }
 
-pub struct Board<const N: usize, T = Tile> {
-    special_tiles: HashMap<Position, T>,
-    array: [[T; N]; N]
+#[derive(Clone)]
+pub struct Board {
+    tile_overrides: HashMap<Position, Tile>,
+    array: Vec<Vec<Tile>>,
+    pub size: usize
 }
 
-impl<const N: usize, T: Default + Copy> Board<N, T> {
-    pub fn new(special_tiles: HashMap<Position, T>) -> Self {
-        let mut array = [[T::default(); N]; N];
-        for (position, tile) in &special_tiles {
+impl Board {
+    pub fn new(tile_overrides: HashMap<Position, Tile>, size: usize) -> Self {
+        let mut array = vec![vec![Tile::default(); size]; size];
+        for (position, tile) in &tile_overrides {
+            assert!(
+                Self::in_bounds(position, size), 
+                "positions must be within the board dimensions"
+            );
             array[position.y as usize][position.x as usize] = *tile;
         }
-        Self { special_tiles, array }
+        Self { tile_overrides, array, size }
     }
 
     pub fn reset(&mut self) {
-        self.array = [[T::default(); N]; N];
-        for (position, tile) in &self.special_tiles {
+        self.array = vec![vec![Tile::default(); self.size]; self.size];
+        for (position, tile) in &self.tile_overrides {
             self.array[position.y as usize][position.x as usize] = *tile;
         }
     }
 
-    pub fn neighbours(&self, position: Position) -> (Vec<Direction>, Vec<Position>) {
-        Direction::iter()
-            .filter_map(|dir| {
-                let neighbour = position.in_direction(dir);
-                Self::in_bounds(&neighbour).then_some((dir, neighbour))
-            })
-            .unzip()
+    pub(crate) fn all_positions(&self) -> Vec<Position> {
+        (0..self.size)
+            .flat_map(move |y| (0..self.size).map(move |x| Position::new(x as i32, y as i32)))
+            .collect()
     }
-
-    fn in_bounds(&Position {x, y}: &Position) -> bool {
-        x >= 0 && x < N as i32 && y >= 0 && y < N as i32
+ 
+    pub(crate) fn in_bounds(&Position {x, y}: &Position, size: usize) -> bool {
+        x >= 0 && x < size as i32 && y >= 0 && y < size as i32
     }
 }
 
-impl<const N: usize, T> Index<&Position> for Board<N, T> {
-    type Output = T;
+impl Index<&Position> for Board {
+    type Output = Tile;
 
     fn index(&self, index: &Position) -> &Self::Output {
         &self.array[index.y as usize][index.x as usize]
     }
 }
 
-impl<const N: usize, T> IndexMut<&Position> for Board<N, T> {
+impl IndexMut<&Position> for Board {
     fn index_mut(&mut self, index: &Position) -> &mut Self::Output {
         &mut self.array[index.y as usize][index.x as usize]
     }

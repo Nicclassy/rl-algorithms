@@ -1,6 +1,6 @@
 use std::{collections::HashMap, ops::Index};
 
-use rand::seq::IteratorRandom;
+use rand::{seq::IteratorRandom, Rng};
 
 use crate::board::Position;
 
@@ -14,8 +14,9 @@ pub struct States {
 }
 
 impl States {
-    pub fn new(n_possible: usize, positions: &[Position]) -> Self {
-        let mut mapping = HashMap::with_capacity(n_possible);
+    pub fn new(positions: &[Position]) -> Self {
+        let n_possible = positions.len();
+        let mut mapping = HashMap::with_capacity(positions.len());
         for (state, position) in positions.iter().enumerate() {
             mapping.insert(*position, state as State);
         }
@@ -42,7 +43,7 @@ impl Actions {
     }
 
     pub fn choose_randomly(&self, probability: f32) -> bool {
-        rand::random::<f32>() < probability
+        rand::rng().random::<f32>() < probability
     }
 
     pub fn random(&self, action_is_possible: impl Fn(Action) -> bool) -> Action {

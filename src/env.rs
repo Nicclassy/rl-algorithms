@@ -16,34 +16,9 @@ pub enum Tile {
     Goal
 }
 
-impl Tile {
-    pub(crate) fn default_reward(&self) -> Reward {
-        match self {
-            Self::Normal => 0f32,
-            Self::Curse => -10f32,
-            Self::Gem => 5f32,
-            Self::Goal => 20f32
-        }
-    }
-}
-
 impl Default for Tile {
     fn default() -> Self {
         Self::Normal
-    }
-}
-
-pub struct TileRewards {
-    pub(crate) state_rewards: HashMap<Tile, Reward>
-}
-
-impl TileRewards {
-    pub fn new(state_rewards: HashMap<Tile, Reward>) -> Self {
-        Self { state_rewards }
-    }
-
-    pub fn reward(&self, tile: &Tile) -> Reward {
-        *self.state_rewards.get(tile).unwrap_or(&tile.default_reward())
     }
 }
 
@@ -56,7 +31,7 @@ pub struct Agent {
 
 impl Agent {
     pub fn new(initial_position: Position) -> Self {
-        Self { initial_position, position: initial_position, path: Vec::new(), has_reached_goal: false }
+        Self { initial_position, position: initial_position, path: vec![initial_position], has_reached_goal: false }
     }
 
     pub fn reset(&mut self) {

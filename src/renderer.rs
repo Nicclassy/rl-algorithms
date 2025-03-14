@@ -1,3 +1,5 @@
+use std::{io::{stdout, Write}, time::Duration};
+
 use colored::Colorize;
 
 use crate::{board::{Board, Position}, env::{Env, Tile}};
@@ -17,6 +19,8 @@ impl From<&Env<'_>> for RenderState {
 pub struct EnvRenderer;
 
 impl EnvRenderer {
+    const SLEEP_TIME_IN_SECONDS: u64 = 1;
+
     pub fn render(state: RenderState) {
         for y in 0..state.board.size {
             for x in 0..state.board.size {
@@ -28,19 +32,33 @@ impl EnvRenderer {
         }
     }
 
+    pub fn sleep() {
+        std::thread::sleep(Duration::from_secs(Self::SLEEP_TIME_IN_SECONDS));
+    }
+
     pub fn clear() {
         std::process::Command::new("clear")
             .status()
             .unwrap();
     }
 
+    pub fn hide_cursor() {
+        print!("\x1B[?25l");
+        let _ = stdout().flush();
+    }
+
+    pub fn show_cursor() {
+        print!("\x1B[?25h");
+        let _ = stdout().flush();
+    }
+
     fn displayed_value(position: Position, tile: Tile, state: &RenderState) -> String {
         match tile {
             _ if position == state.agent_position => "♖".on_purple().to_string(),
             _ if state.visited_positions.contains(&position) => "❄".on_bright_cyan().to_string(),
-            Tile::Curse => "☠".white().on_red().to_string(),
+            Tile::Curse => "☠".red().to_string(),
             Tile::Gem => "∆".bright_green().to_string(),
-            Tile::Goal => "★".bright_yellow().to_string(),
+            Tile::Goal => "★".bright_yellow().on_yellow().to_string(),
             Tile::Normal => ".".to_string(),
         }
     }

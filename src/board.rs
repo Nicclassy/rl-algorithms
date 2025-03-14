@@ -1,7 +1,8 @@
-use std::fmt::{self, Display};
+use std::fmt::{self, Debug, Display};
 use std::collections::HashMap;
 use std::ops::{Add, Index, IndexMut};
 
+use colored::Colorize;
 use strum_macros::EnumIter;
 
 use crate::env::Tile;
@@ -11,25 +12,6 @@ use crate::states::Action;
 pub struct Position {
     pub x: i32,
     pub y: i32
-}
-
-#[derive(EnumIter, Clone, Copy, PartialEq, Eq, Hash)]
-pub enum Direction {
-    Up,
-    Down,
-    Left,
-    Right
-}
-
-impl Direction {
-    pub fn to_action(&self) -> Action {
-        match self {
-            Self::Up => 0,
-            Self::Down => 1,
-            Self::Left => 2,
-            Self::Right => 3
-        }
-    }
 }
 
 impl Position {
@@ -54,15 +36,34 @@ impl Position {
 
 impl Display for Position {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "(x={}, y={})", self.x, self.y)
+        write!(f, "{}", format!("({}, {})", self.x, self.y).purple())
     } 
-} 
+}
 
 impl Add for Position {
     type Output = Self;
 
     fn add(self, rhs: Self) -> Self {
         Self { x: self.x + rhs.x, y: self.y + rhs.y }
+    }
+}
+
+#[derive(EnumIter, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum Direction {
+    Up,
+    Down,
+    Left,
+    Right
+}
+
+impl Direction {
+    pub fn to_action(&self) -> Action {
+        match self {
+            Self::Up => 0,
+            Self::Down => 1,
+            Self::Left => 2,
+            Self::Right => 3
+        }
     }
 }
 
@@ -79,10 +80,15 @@ impl Board {
         for (position, tile) in &tile_overrides {
             assert!(
                 Self::in_bounds(position, size), 
-                "positions must be within the board dimensions"
+                "tile positions must be within the board dimensions"
             );
             array[position.y as usize][position.x as usize] = *tile;
         }
+
+        assert!(
+            tile_overrides.iter().filter(|(_, &v)| v == Tile::Goal).count() == 1,
+            "tile overrides must contain exactly one goal tile"
+        );
         Self { tile_overrides, array, size }
     }
 

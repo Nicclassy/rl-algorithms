@@ -1,5 +1,4 @@
 use std::collections::HashMap;
-use std::io::{stdin, Read};
 
 use colored::Colorize;
 use log::info;
@@ -18,6 +17,7 @@ pub enum Algorithm {
     SARSA
 }
 
+#[derive(Clone, Copy)]
 pub struct AlgorithmParameters {
     pub discount_rate: f32,
     pub learning_rate: f32,
@@ -35,20 +35,21 @@ impl Default for AlgorithmParameters {
             epsilon: 1.0,
             min_epsilon: 0.01,
             n_timesteps: 1000,
-            n_episodes: 1000
+            n_episodes: 500
         }
     }
 }
 
-pub struct EnvParameters {
-    size: usize,
-    tile_overrides: HashMap<Position, Tile>,
-    initial_agent_position: Position,
-    rewarder: Rewarder,
-    reward_plotter: Option<Box<dyn RewardPlotter>>
+#[derive(Clone)]
+pub struct EnvParameters<'a> {
+    pub size: usize,
+    pub tile_overrides: HashMap<Position, Tile>,
+    pub initial_agent_position: Position,
+    pub rewarder: Rewarder,
+    pub reward_plotter: Option<Box<&'a dyn RewardPlotter>>
 }
 
-impl Default for EnvParameters {
+impl Default for EnvParameters<'_> {
     fn default() -> Self {
         Self {
             size: 5,
@@ -58,7 +59,8 @@ impl Default for EnvParameters {
                 Position::new(4, 3) => Tile::Curse,
                 Position::new(0, 4) => Tile::Curse,
                 Position::new(2, 3) => Tile::Curse,
-                Position::new(3, 1) => Tile::Gem
+                Position::new(3, 1) => Tile::Gem,
+                Position::new(4, 4) => Tile::Goal
             },
             initial_agent_position: Position::default(),
             rewarder: |env| {
@@ -66,11 +68,11 @@ impl Default for EnvParameters {
                 let mut reward = match tile {
                     Tile::Normal => 0.0,
                     Tile::Curse => -10.0,
-                    Tile::Gem => 5.0,
-                    Tile::Goal => 20.0
+                    Tile::Gem => 10.0,
+                    Tile::Goal => 30.0
                 };
                 if env.agent_path().contains(&env.agent_position()) {
-                    reward -= 0.5;
+                    reward -= 1.5;
                 }
                 reward
             },
@@ -175,9 +177,6 @@ pub fn execute_algorithm(
 
     if let Some(plotter) = reward_plotter  {
         plotter.plot_rewards(rewards);
-        let mut buf = String::new();
-        println!("Press any key to continue");
-        stdin().read_to_string(&mut buf).expect("Failed to read line");
     }
 
     q

@@ -85,9 +85,10 @@ impl Board {
             array[position.y as usize][position.x as usize] = *tile;
         }
 
+        let goal_tile_count = tile_overrides.iter().filter(|(_, &v)| v == Tile::Goal).count();
         assert!(
-            tile_overrides.iter().filter(|(_, &v)| v == Tile::Goal).count() == 1,
-            "tile overrides must contain exactly one goal tile"
+            goal_tile_count == 1, 
+            "tile overrides must contain exactly one goal tile, found {} instead", goal_tile_count
         );
         Self { tile_overrides, array, size }
     }
